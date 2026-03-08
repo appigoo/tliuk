@@ -1,5 +1,5 @@
 import streamlit as st
-import anthropic
+from groq import Groq
 import random
 
 # ── PAGE CONFIG ──
@@ -735,16 +735,16 @@ English：Word1 → Word2 → Word3
 [幫助記憶英文術語嘅視覺聯想]"""
 
         try:
-            client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
+            client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             with st.spinner("🤖 AI 緊係度幫你創作記憶術…"):
-                response = client.messages.create(
-                    model="claude-sonnet-4-20250514",
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
                     max_tokens=1200,
                     messages=[{"role": "user", "content": prompt}]
                 )
-            st.session_state.ai_memory = response.content[0].text
+            st.session_state.ai_memory = response.choices[0].message.content
         except Exception as e:
-            st.error(f"AI 連線出現問題：{e}\n\n請確保 Streamlit Secrets 已設定 ANTHROPIC_API_KEY。")
+            st.error(f"AI 連線出現問題：{e}\n\n請確保 Streamlit Secrets 已設定 GROQ_API_KEY。")
 
     if st.session_state.ai_memory:
         st.markdown("---")
@@ -767,17 +767,17 @@ English：Word1 → Word2 → Word3
             if st.button(ex, key=f"ex_{i}", use_container_width=True):
                 st.session_state.ai_memory = None
                 try:
-                    client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
+                    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                     with st.spinner("生成中…"):
-                        resp = client.messages.create(
-                            model="claude-sonnet-4-20250514",
+                        resp = client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
                             max_tokens=1000,
                             messages=[{"role": "user", "content":
                                 f"你係Life in UK Test記憶術專家，幫香港50歲以上移英人士。"
                                 f"記住「{ex}」，提供：廣東話口訣（含英文術語）、英文關鍵詞表（中英對照）、雙語故事、視覺記憶。"
                                 f"考試係英文，英文術語要準確。"}]
                         )
-                    st.session_state.ai_memory = resp.content[0].text
+                    st.session_state.ai_memory = resp.choices[0].message.content
                     st.rerun()
                 except Exception as e:
                     st.error(str(e))
@@ -827,17 +827,17 @@ elif mode == "💬 AI 問答":
 考試基本資料：24題、45分鐘、答對18題（75%）合格、費用£50"""
 
         try:
-            client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
+            client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             with st.chat_message("assistant"):
                 with st.spinner("思考中…"):
-                    response = client.messages.create(
-                        model="claude-sonnet-4-20250514",
+                    response = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
                         max_tokens=1200,
-                        system=system,
-                        messages=[{"role": m["role"], "content": m["content"]}
+                        messages=[{"role": "system", "content": system}] +
+                                 [{"role": m["role"], "content": m["content"]}
                                   for m in st.session_state.chat_history]
                     )
-                    reply = response.content[0].text
+                    reply = response.choices[0].message.content
                     st.markdown(reply)
             st.session_state.chat_history.append({"role": "assistant", "content": reply})
         except Exception as e:
