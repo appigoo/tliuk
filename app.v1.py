@@ -620,10 +620,12 @@ elif mode == "🎯 模擬測試":
         </div>
         """, unsafe_allow_html=True)
 
+        # Use seeded RNG so options are identical before and after rerun
+        rng = random.Random(q["id"])
         wrong_pool = [k["answer_en"] for k in KNOWLEDGE_BASE if k["id"] != q["id"]]
-        wrong_opts = random.sample(wrong_pool, min(3, len(wrong_pool)))
+        wrong_opts = rng.sample(wrong_pool, min(3, len(wrong_pool)))
         all_opts = wrong_opts + [q["answer_en"]]
-        random.shuffle(all_opts)
+        rng.shuffle(all_opts)
         opt_key = f"quiz_{q['id']}_{st.session_state.quiz_total}"
 
         if not st.session_state.quiz_answered:
@@ -632,14 +634,16 @@ elif mode == "🎯 模擬測試":
             for i, opt in enumerate(all_opts):
                 if st.button(f"　{letters[i]}.  {opt}", key=f"opt_{i}_{opt_key}", use_container_width=True):
                     st.session_state.quiz_total += 1
-                    correct = (opt == q["answer_en"])
-                    if correct:
+                    # Store only selected text; re-derive correctness at render time
+                    st.session_state.selected_opt = opt
+                    if opt == q["answer_en"]:
                         st.session_state.quiz_score += 1
                     st.session_state.quiz_answered = True
-                    st.session_state.selected_opt = (opt, correct)
                     st.rerun()
         else:
-            selected, is_correct = st.session_state.selected_opt
+            selected = st.session_state.selected_opt
+            # Re-derive correctness at render time — avoids stale tuple bug
+            is_correct = isinstance(selected, str) and selected == q["answer_en"]
             if is_correct:
                 st.success(f"✅ Correct! 答對了！\n\n🇬🇧 **{q['answer_en']}**\n🇭🇰 {q['answer_zh']}")
             else:
