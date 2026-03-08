@@ -593,7 +593,8 @@ elif mode == "🎯 模擬測試":
     if not filtered_kb:
         st.warning("請在側欄選擇至少一個學習範疇。")
     else:
-        if st.session_state.current_q is None:
+        # Reset if stale question from old data structure
+        if st.session_state.current_q is None or "question_en" not in st.session_state.current_q:
             st.session_state.current_q = random.choice(filtered_kb)
             st.session_state.quiz_answered = False
 
