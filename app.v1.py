@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from groq import Groq
 import random
 
@@ -451,6 +452,91 @@ def render_keyword_chain(chain):
     return html
 
 
+def tts_button(text: str, label: str = "🔊 讀出", key: str = "tts", rate: float = 0.85, pitch: float = 1.0):
+    """Render a speak button using browser Web Speech API."""
+    # Escape for JS string — handle quotes and backslashes
+    safe = (text.replace("\\", "\\\\")
+                .replace("'", "\\'")
+                .replace("\n", " ")
+                .replace("\r", ""))
+    uid = abs(hash(key + text)) % 99999
+    components.html(f"""
+    <style>
+      .tts-btn-{uid} {{
+        display: inline-flex; align-items: center; gap: 7px;
+        background: linear-gradient(135deg, #1a1208, #3a2a10);
+        color: #d4a829; border: 1.5px solid #b8860b; border-radius: 6px;
+        padding: 8px 18px; font-size: 0.9rem; font-family: serif;
+        cursor: pointer; transition: all 0.2s; user-select: none;
+        box-shadow: 0 2px 8px rgba(184,134,11,0.2);
+      }}
+      .tts-btn-{uid}:hover {{ background: #2d2010; box-shadow: 0 3px 12px rgba(184,134,11,0.4); transform: translateY(-1px); }}
+      .tts-btn-{uid}.speaking {{ background: linear-gradient(135deg, #1a3a1a, #2d5a2d); border-color: #4a9a4a; color: #80d880; animation: tts-pulse 0.8s infinite; }}
+      @keyframes tts-pulse {{ 0%,100%{{opacity:1}} 50%{{opacity:0.7}} }}
+      .tts-wave-{uid} {{ display:none; gap:2px; align-items:center; }}
+      .tts-wave-{uid}.show {{ display:inline-flex; }}
+      .tts-wave-{uid} span {{ width:3px; background:#80d880; border-radius:2px; animation:wave 0.8s infinite ease-in-out; }}
+      .tts-wave-{uid} span:nth-child(1){{height:6px;animation-delay:0s}}
+      .tts-wave-{uid} span:nth-child(2){{height:12px;animation-delay:0.15s}}
+      .tts-wave-{uid} span:nth-child(3){{height:8px;animation-delay:0.3s}}
+      .tts-wave-{uid} span:nth-child(4){{height:14px;animation-delay:0.1s}}
+      .tts-wave-{uid} span:nth-child(5){{height:6px;animation-delay:0.25s}}
+      @keyframes wave {{ 0%,100%{{transform:scaleY(1)}} 50%{{transform:scaleY(1.8)}} }}
+    </style>
+    <button class="tts-btn-{uid}" id="btn-{uid}" onclick="speakText_{uid}()">
+      <span id="icon-{uid}">🔊</span>
+      <span id="lbl-{uid}">{label}</span>
+      <div class="tts-wave-{uid}" id="wave-{uid}">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+    </button>
+    <script>
+    var synth_{uid} = window.speechSynthesis;
+    var utt_{uid} = null;
+    function speakText_{uid}() {{
+      var btn = document.getElementById('btn-{uid}');
+      var wave = document.getElementById('wave-{uid}');
+      var icon = document.getElementById('icon-{uid}');
+      var lbl = document.getElementById('lbl-{uid}');
+      if (synth_{uid}.speaking) {{
+        synth_{uid}.cancel();
+        btn.classList.remove('speaking');
+        wave.classList.remove('show');
+        icon.textContent = '🔊';
+        lbl.textContent = '{label}';
+        return;
+      }}
+      utt_{uid} = new SpeechSynthesisUtterance('{safe}');
+      utt_{uid}.lang = 'en-GB';
+      utt_{uid}.rate = {rate};
+      utt_{uid}.pitch = {pitch};
+      // Prefer a British English voice
+      var voices = synth_{uid}.getVoices();
+      var preferred = voices.find(v => v.lang === 'en-GB') ||
+                      voices.find(v => v.lang.startsWith('en')) || null;
+      if (preferred) utt_{uid}.voice = preferred;
+      utt_{uid}.onstart = function() {{
+        btn.classList.add('speaking');
+        wave.classList.add('show');
+        icon.textContent = '⏹';
+        lbl.textContent = '停止朗讀';
+      }};
+      utt_{uid}.onend = utt_{uid}.onerror = function() {{
+        btn.classList.remove('speaking');
+        wave.classList.remove('show');
+        icon.textContent = '🔊';
+        lbl.textContent = '{label}';
+      }};
+      synth_{uid}.speak(utt_{uid});
+    }}
+    // Pre-load voices on mobile browsers
+    if (synth_{uid}.onvoiceschanged !== undefined) {{
+      synth_{uid}.onvoiceschanged = function() {{ synth_{uid}.getVoices(); }};
+    }}
+    </script>
+    """, height=52)
+
+
 # ══════════════════════════════════════
 # SIDEBAR
 # ══════════════════════════════════════
@@ -549,12 +635,20 @@ if mode == "🧠 記憶卡片":
                 ])
                 st.markdown(f'<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">{terms_html}</div>', unsafe_allow_html=True)
 
+                # TTS for question and answer
+                _c1, _c2 = st.columns(2)
+                with _c1:
+                    tts_button(item["question_en"], label="🔊 讀出題目", key=f"tts_card_q_{item['id']}", rate=0.8)
+                with _c2:
+                    tts_button(item["answer_en"], label="🔊 讀出答案", key=f"tts_card_a_{item['id']}", rate=0.75)
+
                 tabs = st.tabs(["🔗 關鍵字鏈", "🎵 口訣", "📖 雙語故事", "💡 記憶術"])
 
                 with tabs[0]:
                     st.markdown(render_keyword_chain(item["keyword_chain"]), unsafe_allow_html=True)
                     st.markdown("**英文必記短語 Key English Phrases:**")
                     st.markdown("  ".join([f"`{p}`" for p in item["en_key_phrases"]]))
+                    tts_button(". ".join(item["en_key_phrases"]), label="🔊 讀出關鍵詞", key=f"tts_kp_{item['id']}", rate=0.7)
 
                 with tabs[1]:
                     st.markdown(f"""
@@ -572,6 +666,7 @@ if mode == "🧠 記憶卡片":
                     with col_en:
                         st.markdown("**🇬🇧 English Story**")
                         st.markdown(f'<div class="story-card" style="font-family:\'Source Serif 4\',serif;font-size:0.88rem">{item["story_en"]}</div>', unsafe_allow_html=True)
+                        tts_button(item["story_en"], label="🔊 讀出英文故事", key=f"tts_story_{item['id']}", rate=0.78)
 
                 with tabs[3]:
                     st.markdown(f"""
@@ -683,6 +778,13 @@ elif mode == "📖 英文詞彙表":
                 st.session_state.flashcard_idx = random.randint(0, len(unique_vocab) - 1)
                 st.rerun()
 
+        # TTS — always show; reads the EN term aloud
+        tts_button(
+            f"{card[0]}. {card[2]}",
+            label="🔊 讀出英文術語",
+            key=f"tts_flash_{idx}",
+            rate=0.75
+        )
         st.caption(f"詞彙 {idx+1} / {len(unique_vocab)}")
 
 # ══════════════════════════════════════
@@ -769,6 +871,7 @@ elif mode == "🎯 模擬測試":
           </div>
         </div>
         """, unsafe_allow_html=True)
+        tts_button(q['question_en'], label="🔊 讀出題目", key=f"tts_q_{q['id']}", rate=0.8)
 
         # Use seeded RNG so options are identical before and after rerun
         rng = random.Random(q["id"])
@@ -803,9 +906,38 @@ elif mode == "🎯 模擬測試":
             # Re-derive correctness at render time — avoids stale tuple bug
             is_correct = isinstance(selected, str) and selected == q["answer_en"]
             if is_correct:
-                st.success(f"✅ Correct! 答對了！\n\n🇬🇧 **{q['answer_en']}**\n🇭🇰 {q['answer_zh']}")
+                enc_msg = random.choice(CORRECT_MSGS)
+                streak_msg = STREAK_MSGS.get(st.session_state.streak, "")
+                st.markdown(f"""
+                <div class="celebrate-box">
+                  <div class="celebrate-text">{enc_msg}</div>
+                  <div class="celebrate-sub">🇬🇧 {q["answer_en"]}</div>
+                  {("<div style='color:#ffdd80;font-size:1rem;margin-top:6px'>" + streak_msg + "</div>") if streak_msg else ""}
+                </div>
+                """, unsafe_allow_html=True)
+                st.markdown(f"🇭🇰 中文答案：**{q['answer_zh']}**")
+                tts_button(
+                    f"Correct! The answer is: {q['answer_en']}",
+                    label="🔊 讀出答案",
+                    key=f"tts_ans_c_{q['id']}_{st.session_state.quiz_total}",
+                    rate=0.8
+                )
             else:
-                st.error(f"❌ Incorrect 答錯了！\nYou chose: {selected}\n\n✅ 🇬🇧 **{q['answer_en']}**\n🇭🇰 {q['answer_zh']}")
+                enc_msg = random.choice(WRONG_MSGS)
+                st.markdown(f"""
+                <div class="oops-box">
+                  <div class="oops-text">{enc_msg}</div>
+                  <div class="oops-sub">你選：{selected}</div>
+                  <div style="color:#f0d090;font-weight:700;margin-top:8px">✅ 正確答案：{q["answer_en"]}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.markdown(f"🇭🇰 中文答案：**{q['answer_zh']}**")
+                tts_button(
+                    f"The correct answer is: {q['answer_en']}",
+                    label="🔊 讀出正確答案",
+                    key=f"tts_ans_w_{q['id']}_{st.session_state.quiz_total}",
+                    rate=0.8
+                )
 
             st.markdown("### 💡 記憶技巧 Memory Tips")
             t1, t2, t3, t4 = st.tabs(["🔑 英文關鍵詞", "🔗 關鍵字鏈", "🎵 口訣", "📖 雙語故事"])
