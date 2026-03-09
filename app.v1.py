@@ -118,6 +118,71 @@ div[data-testid="metric-container"] {
 }
 .stButton > button { border-radius: 3px !important; font-family: 'Noto Serif TC', serif !important; transition: all 0.2s !important; }
 .stButton > button:hover { border-color: #b8860b !important; color: #b8860b !important; }
+
+/* XP / streak bar */
+.xp-bar-wrap { background: #e8dfc8; border-radius: 99px; height: 10px; overflow: hidden; margin: 6px 0; }
+.xp-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #d4a829, #f0c040); transition: width 0.6s ease; }
+
+/* Fun celebration box */
+.celebrate-box {
+    background: linear-gradient(135deg, #1a4a1a, #2d6a2d);
+    border: 2px solid #4a9a4a; border-radius: 10px;
+    padding: 18px 24px; text-align: center;
+    animation: popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+@keyframes popIn { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
+.celebrate-text { color: #a0f0a0; font-size: 1.2rem; font-weight: 700; }
+.celebrate-sub { color: rgba(160,240,160,0.7); font-size: 0.85rem; margin-top: 4px; }
+
+.oops-box {
+    background: linear-gradient(135deg, #3a1a08, #5a2a10);
+    border: 2px solid #c87840; border-radius: 10px;
+    padding: 18px 24px; text-align: center;
+    animation: shake 0.4s ease;
+}
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+.oops-text { color: #f0c090; font-size: 1.1rem; font-weight: 700; }
+.oops-sub { color: rgba(240,192,144,0.7); font-size: 0.85rem; margin-top: 4px; }
+
+/* Streak badge */
+.streak-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: linear-gradient(135deg, #8b1a1a, #c03030);
+    color: white; padding: 6px 14px; border-radius: 99px;
+    font-size: 0.85rem; font-weight: 700;
+    box-shadow: 0 2px 8px rgba(192,48,48,0.4);
+    animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{box-shadow:0 2px 8px rgba(192,48,48,0.4)} 50%{box-shadow:0 2px 16px rgba(192,48,48,0.7)} }
+
+/* Fun fact box */
+.funfact-box {
+    background: linear-gradient(135deg, #0a2a4a, #1a3a6a);
+    border: 1px solid #4a7ab8; border-radius: 8px;
+    padding: 16px 20px; margin: 12px 0;
+}
+.funfact-title { color: #7ab8f0; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; margin-bottom: 6px; }
+.funfact-text { color: #c8e0f8; font-size: 0.88rem; line-height: 1.7; }
+
+/* Option buttons states */
+.opt-correct { background: #e8f8e8 !important; border-color: #4a9a4a !important; }
+.opt-wrong { background: #f8e8e8 !important; border-color: #c84a4a !important; }
+
+/* Welcome banner */
+.welcome-banner {
+    background: linear-gradient(135deg, #1a1208 0%, #3a2a10 50%, #1a1208 100%);
+    border-radius: 12px; padding: 28px 32px; margin-bottom: 24px;
+    text-align: center; position: relative; overflow: hidden;
+}
+.welcome-banner::before {
+    content: "🇬🇧"; position: absolute; font-size: 8rem; opacity: 0.05;
+    top: -10px; right: -10px;
+}
+.welcome-title { color: #d4a829; font-family: "Lora", serif; font-size: 1.6rem; margin-bottom: 8px; }
+.welcome-sub { color: rgba(232,223,200,0.7); font-size: 0.9rem; }
+
+/* Progress ring text */
+.progress-text { font-size: 2rem; font-weight: 700; color: #b8860b; font-family: "Lora", serif; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -350,9 +415,26 @@ for k, v in {
     "current_q": None, "quiz_answered": False,
     "selected_opt": None, "chat_history": [],
     "ai_memory": None, "flashcard_idx": 0,
+    "streak": 0, "best_streak": 0, "show_confetti": False,
+    "last_was_correct": None, "xp": 0,
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
+
+# ── ENCOURAGEMENT MESSAGES ──
+CORRECT_MSGS = [
+    "🎉 叻仔叻女！答啱喇！", "🌟 正！你真係得！", "💪 勁！繼續加油！",
+    "🏆 完美！狀態正好！", "👏 好嘢！學到喇！", "🎊 哇！好醒目！",
+    "⭐ 滿分！你好犀利！", "🦁 獅子山精神！答對！", "🍵 飲杯茶休息下，你做得好好！",
+    "🎯 一矢中的！正確！",
+]
+WRONG_MSGS = [
+    "😅 差少少！下次一定得！", "🤔 冇問題，溫多次就記得！",
+    "💡 唔緊要，睇吓下面嘅記憶術！", "🌱 學習係一個過程，繼續！",
+    "☕ 飲杯茶，再睇多次！", "🐢 慢慢嚟，熟能生巧！",
+    "📖 溫書唔係一日之功，你做得到！", "💪 跌倒再爬起，你最叻！",
+]
+STREAK_MSGS = {3: "🔥 連中3題！", 5: "🔥🔥 連中5題！超勁！", 8: "🔥🔥🔥 連中8題！你係高手！", 10: "👑 連中10題！準備考試啦！"}
 
 
 def render_keyword_chain(chain):
@@ -396,9 +478,24 @@ with st.sidebar:
     合格線 Pass mark：75%
     </div>
     """, unsafe_allow_html=True)
+    # XP display
+    xp = st.session_state.xp
+    xp_level = xp // 100 + 1
+    xp_pct = (xp % 100)
+    st.markdown(f"""
+    <div style="color:#d4a829;font-size:0.75rem;margin-top:4px">
+    ⚡ <b>XP：{xp}</b> · 等級 Level {xp_level}
+    </div>
+    <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:{xp_pct}%"></div></div>
+    """, unsafe_allow_html=True)
+    if st.session_state.streak > 0:
+        st.markdown(f'<div class="streak-badge">🔥 連對 {st.session_state.streak} 題</div>', unsafe_allow_html=True)
+    st.markdown("---")
     if st.button("🔄 重置進度 Reset", use_container_width=True):
         st.session_state.quiz_score = 0
         st.session_state.quiz_total = 0
+        st.session_state.streak = 0
+        st.session_state.xp = 0
         st.rerun()
 
 filtered_kb = [k for k in KNOWLEDGE_BASE if k["topic"] in topic_filter]
@@ -407,8 +504,13 @@ filtered_kb = [k for k in KNOWLEDGE_BASE if k["topic"] in topic_filter]
 # MODE 1: 記憶卡片
 # ══════════════════════════════════════
 if mode == "🧠 記憶卡片":
-    st.markdown("## 🧠 中英對照記憶卡片")
-    st.info("💡 考試係英文作答！每張卡片同時顯示中文理解 + 英文考試用語，幫你兩文並重地記憶。")
+    st.markdown("""
+    <div class="welcome-banner">
+      <div class="welcome-title">🧠 中英對照記憶卡片</div>
+      <div class="welcome-sub">每張卡片有5種記憶技巧 · 廣東話理解 + 英文考試用語<br>
+      點擊展開任何卡片開始學習！</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     if not filtered_kb:
         st.warning("請在側欄選擇至少一個學習範疇。")
@@ -483,8 +585,13 @@ if mode == "🧠 記憶卡片":
 # MODE 2: 英文詞彙表
 # ══════════════════════════════════════
 elif mode == "📖 英文詞彙表":
-    st.markdown("## 📖 英文詞彙對照表")
-    st.info("🎯 考試係英文！呢度係所有重要英文詞彙同中文解釋，建議每日溫習。")
+    st.markdown("""
+    <div class="welcome-banner">
+      <div class="welcome-title">📖 英文詞彙對照表</div>
+      <div class="welcome-sub">考試係英文作答 · 熟讀英文術語係通過考試嘅關鍵<br>
+      下面仲有閃卡練習，幫你鞏固記憶！</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     search = st.text_input("🔍 搜尋詞彙 Search", placeholder="輸入中文或英文…")
 
@@ -525,7 +632,13 @@ elif mode == "📖 英文詞彙表":
     # English Flashcard Drill
     st.markdown("---")
     st.markdown("### 🃏 英文閃卡練習 English Flashcard Drill")
-    st.caption("睇住中文，試吓講出英文！Look at Chinese — can you recall the English?")
+    st.markdown("""
+    <div class="funfact-box">
+      <div class="funfact-title">🎮 點玩</div>
+      <div class="funfact-text">睇住中文 → 喺心入面諗一諗英文答案 → 再按「顯示英文」核對！
+      重複練習直到唔使睇答案為止。考試係英文，所以要熟悉英文用法！</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     if unique_vocab:
         idx = st.session_state.flashcard_idx % len(unique_vocab)
@@ -576,17 +689,54 @@ elif mode == "📖 英文詞彙表":
 # MODE 3: 模擬測試 (English questions)
 # ══════════════════════════════════════
 elif mode == "🎯 模擬測試":
-    st.markdown("## 🎯 模擬測試（英文題目）")
-    st.info("🇬🇧 題目以**英文**顯示——因為真實考試係英文！答題後顯示記憶技巧。")
+    # Fun facts shown while studying
+    FUN_FACTS = [
+        "💡 你知唔知：Life in UK考試喺英國超過1,500個考試中心都可以考！",
+        "💡 趣聞：Magna Carta 係拉丁文，意思係「Great Charter」大憲章！",
+        "💡 你知唔知：英國國歌係 God Save the King（或 Queen），視乎當時嘅君主！",
+        "💡 趣聞：莎士比亞發明咗超過1,700個英文新詞，包括 bedroom、lonely、generous！",
+        "💡 你知唔知：英國係全球第一個工業化國家，喺18世紀引領工業革命！",
+        "💡 趣聞：英聯邦嘅54個成員國，合共有24億人口，佔全球1/3！",
+        "💡 你知唔知：英國議會係全球最古老嘅議會之一，有超過700年歷史！",
+    ]
+    if "fun_fact_idx" not in st.session_state:
+        st.session_state.fun_fact_idx = random.randint(0, len(FUN_FACTS)-1)
 
-    c1, c2, c3 = st.columns(3)
+    st.markdown(f"""
+    <div class="welcome-banner">
+      <div class="welcome-title">🎯 模擬測試</div>
+      <div class="welcome-sub">英文題目 · 答題後即睇記憶技巧 · 連對有獎勵！</div>
+    </div>
+    <div class="funfact-box">
+      <div class="funfact-title">📚 學習趣聞 FUN FACT</div>
+      <div class="funfact-text">{FUN_FACTS[st.session_state.fun_fact_idx]}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.metric("✅ 答對", st.session_state.quiz_score)
     with c2:
         st.metric("📝 已答", st.session_state.quiz_total)
     with c3:
         pct = int(st.session_state.quiz_score / st.session_state.quiz_total * 100) if st.session_state.quiz_total > 0 else 0
-        st.metric("🎯 正確率", f"{pct}%", delta="Pass: 75%")
+        delta_color = "normal"
+        st.metric("🎯 正確率", f"{pct}%", delta="✓ 合格！" if pct >= 75 else f"差 {75-pct}%")
+    with c4:
+        st.metric("🔥 連對", f"{st.session_state.streak} 題", delta=f"最高 {st.session_state.best_streak}")
+    # Progress bar toward pass mark
+    if st.session_state.quiz_total > 0:
+        bar_color = "#4a9a4a" if pct >= 75 else "#b8860b"
+        st.markdown(f"""
+        <div style="margin:4px 0 12px">
+          <div style="font-size:0.72rem;color:#6b5e4a;margin-bottom:3px">
+            合格進度 Pass Progress ({pct}% / 75%)
+          </div>
+          <div class="xp-bar-wrap" style="height:14px">
+            <div class="xp-bar-fill" style="width:{min(pct,100)}%;background:{bar_color}"></div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -638,6 +788,14 @@ elif mode == "🎯 模擬測試":
                     st.session_state.selected_opt = opt
                     if opt == q["answer_en"]:
                         st.session_state.quiz_score += 1
+                        st.session_state.streak += 1
+                        st.session_state.xp += 20
+                        if st.session_state.streak > st.session_state.best_streak:
+                            st.session_state.best_streak = st.session_state.streak
+                        st.session_state.fun_fact_idx = random.randint(0, 6)
+                    else:
+                        st.session_state.streak = 0
+                        st.session_state.xp = max(0, st.session_state.xp - 5)
                     st.session_state.quiz_answered = True
                     st.rerun()
         else:
@@ -688,7 +846,8 @@ elif mode == "🎯 模擬測試":
                     st.markdown("**🇬🇧 English**")
                     st.markdown(f'<div class="story-card" style="font-family:\'Source Serif 4\',serif;font-size:0.88rem">{q["story_en"]}</div>', unsafe_allow_html=True)
 
-            if st.button("➡️ 下一題 Next Question", type="primary", use_container_width=True):
+            next_labels = ["➡️ 繼續！下一題！", "💪 唔怕！下一題！", "🚀 衝！下一題！", "🎯 再試！下一題！"]
+            if st.button(random.choice(next_labels), type="primary", use_container_width=True):
                 st.session_state.current_q = random.choice(filtered_kb)
                 st.session_state.quiz_answered = False
                 st.rerun()
@@ -697,8 +856,13 @@ elif mode == "🎯 模擬測試":
 # MODE 4: AI 記憶術
 # ══════════════════════════════════════
 elif mode == "🤖 AI 記憶術":
-    st.markdown("## 🤖 AI 即時生成中英對照記憶術")
-    st.markdown("輸入任何考試內容，AI 即時創作**廣東話口訣 + 英文詞彙對照**！")
+    st.markdown("""
+    <div class="welcome-banner">
+      <div class="welcome-title">🤖 AI 即時生成記憶術</div>
+      <div class="welcome-sub">輸入任何考試內容 · AI 即時創作廣東話口訣 + 英文詞彙 + 故事！<br>
+      係你專屬嘅記憶術，其他人冇得用！</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     col1, col2 = st.columns([2, 1])
     with col1:
@@ -791,8 +955,13 @@ English：Word1 → Word2 → Word3
 # MODE 5: AI 問答
 # ══════════════════════════════════════
 elif mode == "💬 AI 問答":
-    st.markdown("## 💬 AI 備考問答（中英對照）")
-    st.markdown("用廣東話問我任何問題，我會同時提供**英文考試用語**！")
+    st.markdown("""
+    <div class="welcome-banner">
+      <div class="welcome-title">💬 AI 備考問答</div>
+      <div class="welcome-sub">用廣東話問我任何問題 · 我會提供廣東話解釋 + 英文考試用語<br>
+      隨時問，唔怕蠢問題，只怕唔問！</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     for msg in st.session_state.chat_history:
         with st.chat_message("user" if msg["role"] == "user" else "assistant"):
