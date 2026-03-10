@@ -184,6 +184,39 @@ div[data-testid="metric-container"] {
 
 /* Progress ring text */
 .progress-text { font-size: 2rem; font-weight: 700; color: #b8860b; font-family: "Lora", serif; }
+
+/* Joke box */
+.joke-box {
+    background: linear-gradient(135deg, #0a1a3a, #1a2a5a);
+    border: 1.5px solid #4a6ab8; border-radius: 10px;
+    padding: 20px 24px; margin: 14px 0;
+    position: relative; overflow: hidden;
+}
+.joke-box::before {
+    content: "😂"; position: absolute;
+    font-size: 5rem; opacity: 0.07;
+    right: -10px; bottom: -10px;
+}
+.joke-label { color: #7ab0f8; font-size: 0.72rem; letter-spacing: 0.12em; font-weight: 700; margin-bottom: 10px; }
+.joke-setup { color: #c8d8f8; font-size: 1rem; line-height: 1.7; margin-bottom: 12px; }
+.joke-punchline {
+    color: #ffe080; font-size: 1.1rem; font-weight: 700; line-height: 1.8;
+    border-top: 1px dashed rgba(122,176,248,0.3); padding-top: 12px;
+    margin-top: 4px; display: none !important;
+}
+.joke-punchline.revealed { display: block !important; animation: popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275); }
+.punchline-hidden-msg { color: rgba(122,176,248,0.5); font-size:0.85rem; font-style:italic; padding: 6px 0; }
+.joke-drum { font-size: 1.6rem; margin-right: 6px; }
+.joke-note { color: rgba(200,216,248,0.55); font-size: 0.75rem; margin-top: 8px; font-style: italic; }
+
+/* Sidebar joke */
+.sidebar-joke {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(212,168,41,0.2);
+    border-radius: 6px; padding: 10px 12px; margin-top: 8px;
+    font-size: 0.75rem; line-height: 1.6; color: rgba(232,223,200,0.8);
+}
+.sidebar-joke .sj-q { color: #e8dfc8; }
+.sidebar-joke .sj-a { color: #d4a829; font-weight: 600; margin-top: 4px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -437,6 +470,90 @@ WRONG_MSGS = [
 ]
 STREAK_MSGS = {3: "🔥 連中3題！", 5: "🔥🔥 連中5題！超勁！", 8: "🔥🔥🔥 連中8題！你係高手！", 10: "👑 連中10題！準備考試啦！"}
 
+# ── JOKES DATABASE (Cantonese + English puns tied to exam topics) ──
+JOKES = [
+    {
+        "topic": "歷史",
+        "setup_zh": "點解 King John 簽完《大憲章》之後笑唔出？",
+        "punchline_zh": "因為佢俾人「Magna Carta」咗！（限制咗）😂",
+        "setup_en": "Why couldn't King John laugh after signing the Magna Carta?",
+        "punchline_en": "Because he was 'Carta-ed' away! 😄",
+        "note": "Magna Carta = 大憲章，記住1215年！",
+    },
+    {
+        "topic": "政府",
+        "setup_zh": "House of Commons 同 House of Lords 去飲茶，邊個埋單？",
+        "punchline_zh": "下議院！因為佢話：「我係 Common 人，習慣俾錢㗎！」😂",
+        "setup_en": "Why does the House of Commons always pay the bill?",
+        "punchline_en": "Because it's common practice! 😄",
+        "note": "Commons = 平民選出，Lords = 貴族任命",
+    },
+    {
+        "topic": "歷史",
+        "setup_zh": "維多利亞女王點解咁鍾意坐火車？",
+        "punchline_zh": "因為係工業革命嘛，成個英國都係鐵路！佢唔搭都唔得！😂",
+        "setup_en": "Why did Queen Victoria love trains so much?",
+        "punchline_en": "Because during the Industrial Revolution, they were on the right track! 🚂",
+        "note": "Industrial Revolution 工業革命：蒸汽機、鐵路！",
+    },
+    {
+        "topic": "文化",
+        "setup_zh": "莎士比亞去茶餐廳點餐，侍應問：「先生，要乜嘢？」",
+        "punchline_zh": "佢答：「To eat, or not to eat, that is the question...」侍應等到收鋪！😂",
+        "setup_en": "Shakespeare walked into a restaurant. The waiter asked: 'What would you like?'",
+        "punchline_en": "'To eat, or not to eat, that is the question...' The waiter retired before he ordered. 😄",
+        "note": "Hamlet 名句：To be or not to be — 莎士比亞最出名嘅台詞！",
+    },
+    {
+        "topic": "地理",
+        "setup_zh": "點解蘇格蘭人咁醒目？",
+        "punchline_zh": "因為佢哋首都叫 Edinburgh — 讀都讀唔出，咪要靠記憶術囉！😂",
+        "setup_en": "Why are Scottish people so clever?",
+        "punchline_en": "Their capital is Edinburgh — if you can pronounce it, you can remember anything! 😄",
+        "note": "Edinburgh 讀作『艾丁伯勒』，係蘇格蘭首都！",
+    },
+    {
+        "topic": "歷史",
+        "setup_zh": "邱吉爾最鍾意食咩？",
+        "punchline_zh": "雪茄加「Never Surrender」漢堡——永不認輸！即使個漢堡賣完！😂",
+        "setup_en": "What was Churchill's favourite meal?",
+        "punchline_en": "A cigar and a 'Never Surrender' burger — he refused to give up even when it was sold out! 😄",
+        "note": "Churchill 名言：We shall never surrender！",
+    },
+    {
+        "topic": "政府",
+        "setup_zh": "FPTP 選舉制度同賽馬有咩分別？",
+        "punchline_zh": "冇分別！最快嗰隻馬贏，最多票嗰個人贏——輸咗嘅唔洗賠錢，但都係輸！😂",
+        "setup_en": "What's the difference between FPTP elections and horse racing?",
+        "punchline_en": "Nothing! The winner takes all, and the losers still have to pay tax! 😄",
+        "note": "First Past the Post：最多票即勝，唔需過半！",
+    },
+    {
+        "topic": "文化",
+        "setup_zh": "點解英聯邦有54個成員國？",
+        "punchline_zh": "因為大英帝國當年殖民咁多地方，而家佢哋聚埋一齊係要講：『以前嗰啲唔算，我哋依家係朋友！』😂",
+        "setup_en": "Why does the Commonwealth have 54 members?",
+        "punchline_en": "Because after the British Empire ended, they all agreed: 'Let's pretend we were always friends!' 😄",
+        "note": "Commonwealth = 前英國殖民地自願組成嘅聯盟，54個成員！",
+    },
+    {
+        "topic": "歷史",
+        "setup_zh": "維多利亞時代嘅人點解咁勤力？",
+        "punchline_zh": "因為冇 Netflix！工廠唔做嘢就冇得睇！😂（不過真係工業革命令英國變强！）",
+        "setup_en": "Why were people in the Victorian era so productive?",
+        "punchline_en": "No Netflix! You either worked in a factory or stared at the wall! 😄",
+        "note": "Victorian era = 1837-1901，工業革命係英國轉型關鍵！",
+    },
+    {
+        "topic": "政府",
+        "setup_zh": "英國首相同香港老闆有咩分別？",
+        "punchline_zh": "香港老闆話：「我話事！」英國首相要問議會先得，仲要過兩個議院審批！😂",
+        "setup_en": "What's the difference between a UK Prime Minister and a Hong Kong boss?",
+        "punchline_en": "The HK boss says 'I decide!' The PM has to convince two Houses first! 😄",
+        "note": "英國係議會制：PM 需要議會支持先可以施政！",
+    },
+]
+
 
 def render_keyword_chain(chain):
     html = '<div class="keyword-chain">'
@@ -583,6 +700,22 @@ with st.sidebar:
         st.session_state.streak = 0
         st.session_state.xp = 0
         st.rerun()
+    st.markdown("---")
+    # Joke of the day in sidebar
+    if "sidebar_joke_idx" not in st.session_state:
+        st.session_state.sidebar_joke_idx = random.randint(0, len(JOKES)-1)
+    sj = JOKES[st.session_state.sidebar_joke_idx]
+    st.markdown(f"""
+    <div class="sidebar-joke">
+      <div style="color:#d4a829;font-size:0.68rem;letter-spacing:0.1em;font-weight:700;margin-bottom:6px">😂 今日笑話</div>
+      <div class="sj-q">{sj['setup_zh']}</div>
+      <div class="sj-a">{sj['punchline_zh']}</div>
+      <div style="color:rgba(212,168,41,0.4);font-size:0.65rem;margin-top:4px">{sj['note']}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("😂 換個笑話", use_container_width=True):
+        st.session_state.sidebar_joke_idx = (st.session_state.sidebar_joke_idx + 1) % len(JOKES)
+        st.rerun()
 
 filtered_kb = [k for k in KNOWLEDGE_BASE if k["topic"] in topic_filter]
 
@@ -642,7 +775,7 @@ if mode == "🧠 記憶卡片":
                 with _c2:
                     tts_button(item["answer_en"], label="🔊 讀出答案", key=f"tts_card_a_{item['id']}", rate=0.75)
 
-                tabs = st.tabs(["🔗 關鍵字鏈", "🎵 口訣", "📖 雙語故事", "💡 記憶術"])
+                tabs = st.tabs(["🔗 關鍵字鏈", "🎵 口訣", "📖 雙語故事", "💡 記憶術", "😂 笑話記憶"])
 
                 with tabs[0]:
                     st.markdown(render_keyword_chain(item["keyword_chain"]), unsafe_allow_html=True)
@@ -675,6 +808,61 @@ if mode == "🧠 記憶卡片":
                       <div class='mnemonic-text'>{item['mnemonic']}</div>
                     </div>
                     """, unsafe_allow_html=True)
+
+                with tabs[4]:
+                    topic_key = item["topic"].split()[0]
+                    matched = [j for j in JOKES if j["topic"] == topic_key]
+                    card_joke = random.Random(item["id"]).choice(matched) if matched else random.choice(JOKES)
+                    uid_j = f"cjoke_{item['id']}"
+                    punch_visible = st.session_state.get(f"punch_{uid_j}", False)
+
+                    st.markdown(f"""
+                    <div class="joke-box">
+                      <div class="joke-label">😂 笑話記憶法 — 笑住記住考試知識點！</div>
+                      <div class="joke-setup">
+                        🇭🇰 {card_joke["setup_zh"]}<br>
+                        <span style="color:rgba(200,216,248,0.55);font-size:0.84rem">🇬🇧 {card_joke["setup_en"]}</span>
+                      </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    if not punch_visible:
+                        st.markdown('<div class="punchline-hidden-msg">👇 按下面嘅按鈕睇笑話答案…</div>', unsafe_allow_html=True)
+                        if st.button("🥁 🥁 🥁  揭曉答案！咁笑法！", key=f"punch_btn_{uid_j}", use_container_width=True):
+                            st.session_state[f"punch_{uid_j}"] = True
+                            st.rerun()
+                    else:
+                        st.markdown(f"""
+                        <div style="background:linear-gradient(135deg,#1a3a0a,#2a5a1a);border:2px solid #4a9a2a;
+                                    border-radius:8px;padding:16px 20px;margin:8px 0;animation:popIn 0.4s ease">
+                          <div style="color:#c0f060;font-size:1.1rem;font-weight:700;line-height:1.8">
+                            🇭🇰 {card_joke["punchline_zh"]}
+                          </div>
+                          <div style="color:#90c840;font-size:0.9rem;margin-top:6px;font-style:italic">
+                            🇬🇧 {card_joke["punchline_en"]}
+                          </div>
+                        </div>
+                        <div style="background:rgba(212,168,41,0.1);border-left:3px solid #d4a829;
+                                    border-radius:0 4px 4px 0;padding:8px 14px;margin-top:8px;font-size:0.82rem;color:#d4a829">
+                          📌 記住喇？{card_joke["note"]}
+                        </div>
+                        """, unsafe_allow_html=True)
+                        jcols = st.columns([1, 1, 1])
+                        with jcols[0]:
+                            tts_button(
+                                f"{card_joke['setup_en']} {card_joke['punchline_en']}",
+                                label="🔊 讀出笑話",
+                                key=f"tts_cjoke_{item['id']}",
+                                rate=0.82
+                            )
+                        with jcols[1]:
+                            if st.button("🔄 換個笑話", key=f"next_cjoke_{uid_j}", use_container_width=True):
+                                # cycle to next joke
+                                cur_idx = JOKES.index(card_joke) if card_joke in JOKES else 0
+                                next_joke = JOKES[(cur_idx + 1) % len(JOKES)]
+                                st.session_state[f"override_cjoke_{item['id']}"] = next_joke
+                                st.session_state[f"punch_{uid_j}"] = False
+                                st.rerun()
 
 # ══════════════════════════════════════
 # MODE 2: 英文詞彙表
@@ -977,6 +1165,58 @@ elif mode == "🎯 模擬測試":
                 with cb:
                     st.markdown("**🇬🇧 English**")
                     st.markdown(f'<div class="story-card" style="font-family:\'Source Serif 4\',serif;font-size:0.88rem">{q["story_en"]}</div>', unsafe_allow_html=True)
+
+            # ── JOKE BREAK after answer ──
+            st.markdown("""
+            <div style="text-align:center;margin:18px 0 8px;color:#d4a829;font-size:0.75rem;letter-spacing:0.15em;font-weight:700">
+              ─────  😂  笑住溫書，記得更快！  😂  ─────
+            </div>
+            """, unsafe_allow_html=True)
+
+            topic_key_q = q["topic"].split()[0]
+            q_matched = [j for j in JOKES if j["topic"] == topic_key_q]
+            qj_key = f"qjoke_{q['id']}_{st.session_state.quiz_total}"
+            quiz_joke = st.session_state.get(f"override_qjoke_{qj_key}") or (
+                random.Random(q["id"] * 7 + st.session_state.quiz_total).choice(q_matched) if q_matched else random.choice(JOKES)
+            )
+            qpunch_visible = st.session_state.get(f"qpunch_{qj_key}", False)
+
+            st.markdown(f"""
+            <div class="joke-box">
+              <div class="joke-label">😂 今題笑話 — 笑住記住考試知識！</div>
+              <div class="joke-setup" style="font-size:1.05rem">
+                🇭🇰 {quiz_joke["setup_zh"]}<br>
+                <span style="color:rgba(200,216,248,0.55);font-size:0.85rem">🇬🇧 {quiz_joke["setup_en"]}</span>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if not qpunch_visible:
+                if st.button("🥁 🥁  按呢度揭曉笑話答案！", key=f"qpunch_btn_{qj_key}", use_container_width=True):
+                    st.session_state[f"qpunch_{qj_key}"] = True
+                    st.rerun()
+            else:
+                st.markdown(f"""
+                <div style="background:linear-gradient(135deg,#1a3a0a,#2a5a1a);border:2px solid #4a9a2a;
+                            border-radius:8px;padding:18px 22px;animation:popIn 0.4s ease">
+                  <div style="color:#c0f060;font-size:1.12rem;font-weight:700;line-height:1.9">
+                    🇭🇰 {quiz_joke["punchline_zh"]}
+                  </div>
+                  <div style="color:#90c840;font-size:0.9rem;margin-top:8px;font-style:italic">
+                    🇬🇧 {quiz_joke["punchline_en"]}
+                  </div>
+                </div>
+                <div style="background:rgba(212,168,41,0.1);border-left:3px solid #d4a829;
+                            border-radius:0 4px 4px 0;padding:10px 16px;margin:8px 0;font-size:0.83rem;color:#d4a829">
+                  📌 記憶提示：{quiz_joke["note"]}
+                </div>
+                """, unsafe_allow_html=True)
+                tts_button(
+                    f"{quiz_joke['setup_en']} {quiz_joke['punchline_en']}",
+                    label="🔊 讀出笑話（英式口音）",
+                    key=f"tts_qjoke_{qj_key}",
+                    rate=0.82
+                )
 
             next_labels = ["➡️ 繼續！下一題！", "💪 唔怕！下一題！", "🚀 衝！下一題！", "🎯 再試！下一題！"]
             if st.button(random.choice(next_labels), type="primary", use_container_width=True):
